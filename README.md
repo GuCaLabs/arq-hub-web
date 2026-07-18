@@ -1,5 +1,27 @@
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
+## Configuração
+
+Crie o arquivo `.env.local` a partir de `.env.example` e informe a URL da API
+sem o sufixo `/v1`, além da configuração do app Web no Firebase.
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3000/api
+NEXT_PUBLIC_FIREBASE_API_KEY=...
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=...
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=...
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=...
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=...
+NEXT_PUBLIC_FIREBASE_APP_ID=...
+```
+
+No Firebase Authentication, habilite os provedores Email/Password, Google e/ou
+Apple conforme os botões que desejar disponibilizar. Inclua o domínio do web em
+**Authorized domains**. O backend também deve permitir a origem do web no CORS.
+
+O web autentica no Firebase e envia `{ provider: "firebase", idToken }` para
+`POST /api/v1/auth/login`; o backend retorna os tokens próprios da API.
+
 ## Getting Started
 
 First, run the development server:

@@ -2,12 +2,19 @@
 
 import { createContext, useContext, useEffect, useState, useCallback, ReactNode } from "react";
 import { useRouter, usePathname } from "next/navigation";
+import { signOut } from "firebase/auth";
+import { getFirebaseAuth } from "@/lib/firebase";
 
 export interface User {
   id: string;
   name: string | null;
   email: string;
+  avatarUrl: string | null;
   status: string;
+  emailVerified: boolean;
+  lastLoginAt: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface AuthContextType {
@@ -39,6 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [router]);
 
   const logout = useCallback(() => {
+    void signOut(getFirebaseAuth()).catch(() => {
+      // A sessão da API ainda deve ser encerrada se a configuração do Firebase falhar.
+    });
     localStorage.removeItem("arqhub_access_token");
     localStorage.removeItem("arqhub_refresh_token");
     localStorage.removeItem("arqhub_user");
