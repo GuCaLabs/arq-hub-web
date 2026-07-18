@@ -230,7 +230,7 @@ const Demo = () => {
       <ScrollExpandMedia
         mediaType={mediaType as 'video' | 'image'}
         mediaSrc={currentMedia.src}
-        posterSrc={mediaType === 'video' ? currentMedia.poster : undefined}
+        posterSrc={currentMedia.poster}
         bgImageSrc={currentMedia.background}
         title={currentMedia.title}
         date={currentMedia.date}
