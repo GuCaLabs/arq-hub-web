@@ -2,9 +2,16 @@
 
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useRouter } from "next/navigation";
-import { initializeApp, getApp, getApps } from "firebase/app";
-import { getAuth, signInWithPopup, GoogleAuthProvider, OAuthProvider } from "firebase/auth";
+import { exchangeFirebaseToken } from "@/lib/auth-api";
+import { getFirebaseAuth } from "@/lib/firebase";
+import {
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider,
+  OAuthProvider,
+  signInWithEmailAndPassword,
+  signInWithPopup,
+  type UserCredential,
+} from "firebase/auth";
 
 export default function LoginPage() {
   const [isLogin, setIsLogin] = useState(true);
@@ -13,31 +20,36 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { login } = useAuth();
-  const router = useRouter();
+
+  const completeLogin = async (credential: UserCredential) => {
+    const idToken = await credential.user.getIdToken();
+    const session = await exchangeFirebaseToken(idToken);
+    login(session.accessToken, session.refreshToken, session.user);
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     setError("");
 
-    const endpoint = isLogin ? "/api/auth/proxy-login" : "/api/auth/proxy-signup";
-
     try {
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const auth = getFirebaseAuth();
+      const credential = isLogin
+        ? await signInWithEmailAndPassword(auth, email, password)
+        : await createUserWithEmailAndPassword(auth, email, password);
 
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        login(data.data.accessToken, data.data.refreshToken, data.data.user);
+      await completeLogin(credential);
+    } catch (error) {
+      const firebaseError = error as Error & { code?: string };
+      if (firebaseError.code === "auth/email-already-in-use") {
+        setError("Já existe uma conta com este email.");
+      } else if (firebaseError.code === "auth/invalid-credential") {
+        setError("Email ou senha inválidos.");
+      } else if (firebaseError.code === "auth/weak-password") {
+        setError("A senha deve ter pelo menos 6 caracteres.");
       } else {
-        setError(data.message || (isLogin ? "Credenciais inválidas" : "Erro ao criar conta"));
+        setError(firebaseError.message || "Erro de conexão. Tente novamente.");
       }
-    } catch (err) {
-      setError("Erro de conexão. Tente novamente.");
     } finally {
       setIsLoading(false);
     }
@@ -47,44 +59,17 @@ export default function LoginPage() {
     setIsLoading(true);
     setError("");
     try {
-      const configRes = await fetch("/api/auth/firebase-config");
-      const configData = await configRes.json();
-
-      if (!configData.success) {
-        throw new Error(configData.message || "Failed to get Firebase configuration");
-      }
-
-      let app;
-      if (!getApps().length) {
-        app = initializeApp(configData.data);
-      } else {
-        app = getApp();
-      }
-
-      const auth = getAuth(app);
-      let provider;
+      const auth = getFirebaseAuth();
+      let provider: GoogleAuthProvider | OAuthProvider;
       if (providerName === 'google') {
         provider = new GoogleAuthProvider();
+        provider.setCustomParameters({ prompt: "select_account" });
       } else {
         provider = new OAuthProvider('apple.com');
       }
       
       const result = await signInWithPopup(auth, provider);
-      const idToken = await result.user.getIdToken();
-
-      const loginRes = await fetch("/api/v1/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider: "firebase", idToken }),
-      });
-
-      const loginData = await loginRes.json();
-
-      if (loginRes.ok && loginData.success) {
-        login(loginData.data.accessToken, loginData.data.refreshToken, loginData.data.user);
-      } else {
-        setError(loginData.message || `Erro ao fazer login com ${providerName === 'google' ? 'o Google' : 'a Apple'}`);
-      }
+      await completeLogin(result);
     } catch (error) {
       const err = error as Error & { code?: string };
       if (err.code === "auth/popup-closed-by-user") {
