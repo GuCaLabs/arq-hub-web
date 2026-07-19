@@ -158,21 +158,34 @@ export default function ProjectDashboard() {
   };
 
   const handleDownloadDocument = async (id: string) => {
+    // Abra a aba durante o clique do usuário para evitar bloqueio de pop-up.
+    // O arquivo em si não deve ser buscado com fetch: a API devolve uma URL
+    // temporária do storage e o navegador apenas navega até ela.
+    const fileWindow = window.open("", "_blank");
+    if (fileWindow) fileWindow.opener = null;
+
     try {
-      // The fetchApi wrapper will add the Authorization header
       const res = await fetchApi(`/documents/${id}/download`);
-      
-      if (res.redirected) {
-        // If the backend redirects us, we can get the redirected URL from res.url
-        window.open(res.url, '_blank');
-      } else if (res.ok) {
-        // Just in case it returned JSON with the URL
-        const data = await res.json();
-        if (data.url) window.open(data.url, '_blank');
-      } else {
+      if (!res.ok) {
+        fileWindow?.close();
         alert("Erro ao tentar baixar o documento.");
+        return;
+      }
+
+      const body = await res.json();
+      const url = body.data?.url ?? body.url;
+      if (!url || typeof url !== "string") {
+        fileWindow?.close();
+        throw new Error("A API não retornou a URL do documento.");
+      }
+
+      if (fileWindow) {
+        fileWindow.location.href = url;
+      } else {
+        window.location.assign(url);
       }
     } catch (e) {
+      fileWindow?.close();
       console.error(e);
       alert("Erro ao tentar baixar o documento.");
     }
