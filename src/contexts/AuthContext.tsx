@@ -21,13 +21,13 @@ interface AuthContextType {
   user: User | null;
   token: string | null;
   isLoading: boolean;
-  login: (accessToken: string, refreshToken: string, user: User) => void;
+  login: (accessToken: string, refreshToken: string, user: User, redirectPath?: string) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const PUBLIC_ROUTES = ["/", "/login"];
+const PUBLIC_ROUTES = ["/", "/login", "/magic-link"];
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
@@ -36,13 +36,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
 
-  const login = useCallback((accessToken: string, refreshToken: string, userData: User) => {
+  const login = useCallback((accessToken: string, refreshToken: string, userData: User, redirectPath?: string) => {
     localStorage.setItem("arqhub_access_token", accessToken);
     localStorage.setItem("arqhub_refresh_token", refreshToken);
     localStorage.setItem("arqhub_user", JSON.stringify(userData));
     setToken(accessToken);
     setUser(userData);
-    router.push("/dashboard");
+    router.push(redirectPath || "/dashboard");
   }, [router]);
 
   const logout = useCallback(() => {

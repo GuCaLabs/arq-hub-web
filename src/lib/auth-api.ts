@@ -34,3 +34,20 @@ export async function exchangeFirebaseToken(idToken: string): Promise<AuthSucces
 
   return payload.data;
 }
+
+export async function verifyMagicLink(token: string): Promise<AuthSuccess["data"]> {
+  const response = await fetch(getApiUrl("/auth/magic-link"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as AuthResponse | null;
+
+  if (!response.ok || payload?.success !== true) {
+    const message = payload?.success === false ? payload.message : undefined;
+    throw new Error(message || "Não foi possível validar o link mágico com o servidor.");
+  }
+
+  return payload.data;
+}
