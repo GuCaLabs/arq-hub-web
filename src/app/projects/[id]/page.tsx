@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
+import { useEffect, useState, useRef, use, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { fetchApi } from "@/lib/api";
 import Link from "next/link";
 
@@ -9,13 +9,26 @@ interface Person { id: string; name: string; email: string | null }
 interface Project { id: string; name: string; workspaceId: string; status: string }
 interface Folder { id: string; name: string; parentFolderId: string | null }
 interface Document { id: string; fileName: string; mimeType: string; size: string; status: string; uploadStatus: string; uploadUrl?: string; folderId: string | null }
+interface ProjectMember {
+  id: string;
+  userId: string | null;
+  role: string;
+  status: string;
+  joinedAt: string;
+  user?: {
+    name: string | null;
+    email: string;
+    avatarUrl: string | null;
+  };
+}
 
-export default function ProjectDashboard() {
-  const params = useParams();
-  const projectId = params.id as string;
+export default function ProjectDashboard({ params }: { params: Promise<{ id: string }> }) {
+  const { id: projectId } = use(params);
+  const router = useRouter();
   
   const [project, setProject] = useState<Project | null>(null);
   const [persons, setPersons] = useState<Person[]>([]);
+  const [members, setMembers] = useState<ProjectMember[]>([]);
   const [folders, setFolders] = useState<Folder[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
   
@@ -28,16 +41,17 @@ export default function ProjectDashboard() {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const projRes = await fetchApi(`/projects/${projectId}`);
       if (projRes.ok) {
         const projData = (await projRes.json()).data;
         setProject(projData);
         
-        const [docsRes, pRes] = await Promise.all([
+        const [docsRes, pRes, memRes] = await Promise.all([
           fetchApi(`/projects/${projectId}/documents`),
-          fetchApi(`/workspaces/${projData.workspaceId}/persons`)
+          fetchApi(`/workspaces/${projData.workspaceId}/persons`),
+          fetchApi(`/projects/${projectId}/members`)
         ]);
         
         if (docsRes.ok) {
@@ -48,15 +62,21 @@ export default function ProjectDashboard() {
         if (pRes.ok) {
           setPersons((await pRes.json()).data);
         }
+        if (memRes.ok) {
+          setMembers((await memRes.json()).data);
+        }
       }
     } catch (e) {
       console.error(e);
     }
-  };
+  }, [projectId]);
 
   useEffect(() => {
-    if (projectId) loadData();
-  }, [projectId]);
+    if (projectId) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      loadData();
+    }
+  }, [projectId, loadData]);
 
   const handleCreateFolder = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,6 +104,28 @@ export default function ProjectDashboard() {
     if (res.ok) {
       const data = await res.json();
       setInviteCode(data.data.code);
+    }
+  };
+
+  const handleApproveMember = async (memberId: string) => {
+    const res = await fetchApi(`/projects/${projectId}/members/${memberId}/approve`, {
+      method: "POST"
+    });
+    if (res.ok) {
+      loadData();
+    } else {
+      alert("Erro ao aprovar membro.");
+    }
+  };
+
+  const handleRejectMember = async (memberId: string) => {
+    const res = await fetchApi(`/projects/${projectId}/members/${memberId}/reject`, {
+      method: "POST"
+    });
+    if (res.ok) {
+      loadData();
+    } else {
+      alert("Erro ao recusar membro.");
     }
   };
 
@@ -216,11 +258,59 @@ export default function ProjectDashboard() {
             <h2 className="text-lg font-bold mb-4">Membros & Convites</h2>
             
             <div className="mb-6 pb-6 border-b border-gray-100 dark:border-gray-800">
-              <h3 className="text-sm font-medium mb-3">Gerar Convite de Cliente</h3>
+              <h3 className="text-sm font-medium mb-3">Gerar Convite de Cliente (Projeto)</h3>
               <div className="flex items-center gap-3">
                 <button onClick={handleGenerateInvite} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium">Gerar Convite</button>
-                {inviteCode && <span className="font-mono bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1.5 rounded">{inviteCode}</span>}
+                {inviteCode && (
+                  <span className="font-mono bg-blue-50 dark:bg-blue-900/30 text-blue-800 dark:text-blue-300 px-3 py-1.5 rounded flex items-center gap-2">
+                    {inviteCode}
+                    <button onClick={() => navigator.clipboard.writeText(inviteCode)} title="Copiar" className="hover:text-blue-600 text-sm">📋</button>
+                  </span>
+                )}
               </div>
+            </div>
+
+            <div className="mb-6 pb-6 border-b border-gray-100 dark:border-gray-800">
+              <h3 className="text-sm font-medium mb-3">Membros do Projeto</h3>
+              <ul className="space-y-3 max-h-48 overflow-y-auto pr-2">
+                {members.map(m => (
+                  <li key={m.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-100 dark:border-gray-700 gap-4">
+                    <div>
+                      <span className="font-medium text-gray-900 dark:text-white text-sm">
+                        {m.user?.name || m.user?.email || "Usuário Pendente"}
+                      </span>
+                      <div className="flex gap-2 items-center text-xs mt-1">
+                        <span className="text-gray-500 font-medium">{m.role}</span>
+                        <span className={`px-2 py-0.5 rounded-full font-medium ${
+                          m.status === 'PENDING' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300' : 
+                          m.status === 'APPROVED' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300' : 
+                          'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                        }`}>
+                          {m.status}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    {m.status === "PENDING" && (
+                      <div className="flex gap-2">
+                        <button 
+                          onClick={() => handleApproveMember(m.id)}
+                          className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white rounded text-xs font-medium transition-colors"
+                        >
+                          Aceitar
+                        </button>
+                        <button 
+                          onClick={() => handleRejectMember(m.id)}
+                          className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition-colors"
+                        >
+                          Recusar
+                        </button>
+                      </div>
+                    )}
+                  </li>
+                ))}
+                {members.length === 0 && <li className="text-sm text-gray-500 text-center py-4">Nenhum membro vinculado.</li>}
+              </ul>
             </div>
 
             <div>
@@ -228,7 +318,7 @@ export default function ProjectDashboard() {
               <form onSubmit={handleLinkPerson} className="flex gap-2">
                 <select 
                   value={selectedPersonId} onChange={e => setSelectedPersonId(e.target.value)} required
-                  className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent"
+                  className="flex-1 px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent text-sm"
                 >
                   <option value="">Selecione uma pessoa</option>
                   {persons.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
@@ -243,7 +333,7 @@ export default function ProjectDashboard() {
             <form onSubmit={handleCreateFolder} className="flex flex-col gap-2 mb-6">
               <input 
                 type="text" required placeholder="Nova pasta..." value={folderName} onChange={e => setFolderName(e.target.value)}
-                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent"
+                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-transparent text-sm"
               />
               <div className="flex gap-2">
                 <select 
@@ -253,21 +343,21 @@ export default function ProjectDashboard() {
                   <option value="">(Raiz)</option>
                   {folders.map(f => <option key={f.id} value={f.id}>{f.name}</option>)}
                 </select>
-                <button type="submit" className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm">Criar Pasta</button>
+                <button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm transition-colors">Criar Pasta</button>
               </div>
             </form>
 
             <ul className="space-y-1">
               <li 
                 onClick={() => setSelectedFolderId(null)} 
-                className={`p-2 rounded cursor-pointer ${selectedFolderId === null ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-medium" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+                className={`p-2 rounded cursor-pointer text-sm ${selectedFolderId === null ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-medium" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
               >
                 📁 / (Raiz)
               </li>
               {folders.map(f => (
                 <li 
                   key={f.id} onClick={() => setSelectedFolderId(f.id)}
-                  className={`p-2 rounded cursor-pointer flex items-center gap-2 ${selectedFolderId === f.id ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-medium" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
+                  className={`p-2 rounded cursor-pointer flex items-center gap-2 text-sm ${selectedFolderId === f.id ? "bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-400 font-medium" : "hover:bg-gray-50 dark:hover:bg-gray-800"}`}
                 >
                   📁 {f.name}
                 </li>
@@ -284,7 +374,7 @@ export default function ProjectDashboard() {
               <input type="file" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
               <button 
                 onClick={() => fileInputRef.current?.click()} disabled={isUploading}
-                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50"
+                className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 transition-colors"
               >
                 {isUploading ? "Enviando..." : "⬆ Fazer Upload"}
               </button>
@@ -293,12 +383,12 @@ export default function ProjectDashboard() {
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
-              <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500">
+              <thead className="bg-gray-50 dark:bg-gray-800 text-gray-500 border-b border-gray-100 dark:border-gray-800">
                 <tr>
-                  <th className="p-3 rounded-tl-lg">Nome do Arquivo</th>
-                  <th className="p-3">Status</th>
-                  <th className="p-3">Tamanho</th>
-                  <th className="p-3 rounded-tr-lg">Ações</th>
+                  <th className="p-3 font-medium">Nome do Arquivo</th>
+                  <th className="p-3 font-medium">Status</th>
+                  <th className="p-3 font-medium">Tamanho</th>
+                  <th className="p-3 font-medium text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
@@ -306,20 +396,20 @@ export default function ProjectDashboard() {
                   <tr><td colSpan={4} className="p-8 text-center text-gray-500">Nenhum documento nesta pasta.</td></tr>
                 )}
                 {documents.filter(d => d.folderId === selectedFolderId).map(d => (
-                  <tr key={d.id} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
-                    <td className="p-3 font-medium">{d.fileName}</td>
+                  <tr key={d.id} className="border-b border-gray-100 dark:border-gray-800 last:border-0 hover:bg-gray-50 dark:hover:bg-gray-800/50">
+                    <td className="p-3 font-medium text-gray-900 dark:text-white">{d.fileName}</td>
                     <td className="p-3">
-                      <span className={`px-2 py-1 rounded text-xs ${d.uploadStatus === "COMPLETED" ? "bg-green-100 text-green-700" : d.uploadStatus === "FAILED" ? "bg-red-100 text-red-700" : "bg-yellow-100 text-yellow-700"}`}>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${d.uploadStatus === "COMPLETED" ? "bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300" : d.uploadStatus === "FAILED" ? "bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300" : "bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300"}`}>
                         {d.uploadStatus}
                       </span>
                     </td>
                     <td className="p-3 text-gray-500">{(parseInt(d.size) / 1024 / 1024).toFixed(2)} MB</td>
                     <td className="p-3">
-                      <div className="flex gap-3">
-                        <button onClick={() => handleDownloadDocument(d.id)} className="text-blue-600 hover:underline">
+                      <div className="flex gap-3 justify-end">
+                        <button onClick={() => handleDownloadDocument(d.id)} className="text-blue-600 hover:text-blue-700 hover:underline font-medium">
                           Visualizar / Baixar
                         </button>
-                        <button onClick={() => handleDeleteDocument(d.id)} className="text-red-500 hover:underline">
+                        <button onClick={() => handleDeleteDocument(d.id)} className="text-red-600 hover:text-red-700 hover:underline font-medium">
                           Excluir
                         </button>
                       </div>
