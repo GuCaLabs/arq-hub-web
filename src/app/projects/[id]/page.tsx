@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef, use, useCallback } from "react";
 import { fetchApi } from "@/lib/api";
 import Link from "next/link";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Person {
   id: string;
@@ -14,6 +15,7 @@ interface Project {
   name: string;
   workspaceId: string;
   status: string;
+  currentUserRole?: string;
 }
 interface Folder {
   id: string;
@@ -49,6 +51,7 @@ export default function ProjectDashboard({
   params: Promise<{ id: string }>;
 }) {
   const { id: projectId } = use(params);
+  const { user } = useAuth();
 
   const [project, setProject] = useState<Project | null>(null);
   const [persons, setPersons] = useState<Person[]>([]);
@@ -72,10 +75,18 @@ export default function ProjectDashboard({
         const projData = (await projRes.json()).data;
         setProject(projData);
 
+        let fetchPersonsPromise = Promise.resolve<Response | null>(null);
+        let fetchMembersPromise = Promise.resolve<Response | null>(null);
+
+        if (projData.currentUserRole !== "CLIENT") {
+          fetchPersonsPromise = fetchApi(`/workspaces/${projData.workspaceId}/persons`);
+          fetchMembersPromise = fetchApi(`/projects/${projectId}/members`);
+        }
+
         const [docsRes, pRes, memRes] = await Promise.all([
           fetchApi(`/projects/${projectId}/documents`),
-          fetchApi(`/workspaces/${projData.workspaceId}/persons`),
-          fetchApi(`/projects/${projectId}/members`),
+          fetchPersonsPromise,
+          fetchMembersPromise,
         ]);
 
         if (docsRes.ok) {
@@ -83,10 +94,10 @@ export default function ProjectDashboard({
           setFolders(docsData.folders);
           setDocuments(docsData.documents);
         }
-        if (pRes.ok) {
+        if (pRes?.ok) {
           setPersons((await pRes.json()).data);
         }
-        if (memRes.ok) {
+        if (memRes?.ok) {
           setMembers((await memRes.json()).data);
         }
       }
@@ -279,12 +290,14 @@ export default function ProjectDashboard({
   if (!project)
     return <div className="p-8 text-center text-gray-500">Carregando...</div>;
 
+  const isClient = project?.currentUserRole === "CLIENT";
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pb-12">
       <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center gap-4">
           <Link
-            href={`/workspaces/${project.workspaceId}`}
+            href={isClient ? "/dashboard" : `/workspaces/${project.workspaceId}`}
             className="text-gray-500 hover:text-gray-900 dark:hover:text-white"
           >
             &larr; Voltar
@@ -298,7 +311,8 @@ export default function ProjectDashboard({
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          <section className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
+          {!isClient && (
+            <section className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
             <h2 className="text-lg font-bold mb-4">Membros & Convites</h2>
 
             <div className="mb-6 pb-6 border-b border-gray-100 dark:border-gray-800">
@@ -410,6 +424,7 @@ export default function ProjectDashboard({
               </form>
             </div>
           </section>
+          )}
 
           <section className="bg-white dark:bg-gray-900 p-6 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800">
             <h2 className="text-lg font-bold mb-4">Pastas</h2>
