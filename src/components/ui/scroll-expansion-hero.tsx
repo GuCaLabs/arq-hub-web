@@ -10,6 +10,7 @@ import {
 } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
+import { Logo } from './logo';
 
 interface ScrollExpandMediaProps {
   mediaType?: 'video' | 'image';
@@ -41,6 +42,14 @@ const ScrollExpandMedia = ({
   const [mediaFullyExpanded, setMediaFullyExpanded] = useState<boolean>(false);
   const [touchStartY, setTouchStartY] = useState<number>(0);
   const [isMobileState, setIsMobileState] = useState<boolean>(false);
+  const [prevMediaType, setPrevMediaType] = useState(mediaType);
+
+  if (mediaType !== prevMediaType) {
+    setPrevMediaType(mediaType);
+    setScrollProgress(0);
+    setShowContent(false);
+    setMediaFullyExpanded(false);
+  }
 
   const sectionRef = useRef<HTMLDivElement | null>(null);
 
@@ -49,12 +58,6 @@ const ScrollExpandMedia = ({
       onProgressChange(scrollProgress);
     }
   }, [scrollProgress, onProgressChange]);
-
-  useEffect(() => {
-    setScrollProgress(0);
-    setShowContent(false);
-    setMediaFullyExpanded(false);
-  }, [mediaType]);
 
   useEffect(() => {
     const handleWheel = (e: WheelEvent) => {
@@ -206,7 +209,7 @@ const ScrollExpandMedia = ({
           <div className='container mx-auto flex flex-col items-center justify-start relative z-10'>
             <div className='flex flex-col items-center justify-center w-full h-[100dvh] relative'>
               <div
-                className='absolute z-0 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-none rounded-2xl'
+                className='absolute z-0 top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 transition-none rounded-container'
                 style={{
                   width: `${mediaWidth}px`,
                   height: `${mediaHeight}px`,
@@ -230,7 +233,7 @@ const ScrollExpandMedia = ({
                               '?autoplay=1&mute=1&loop=1&controls=0&showinfo=0&rel=0&disablekb=1&modestbranding=1&playlist=' +
                               mediaSrc.split('v=')[1]
                         }
-                        className='w-full h-full rounded-xl'
+                        className='w-full h-full rounded-card'
                         frameBorder='0'
                         allow='accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture'
                         allowFullScreen
@@ -241,7 +244,7 @@ const ScrollExpandMedia = ({
                       ></div>
 
                       <motion.div
-                        className='absolute inset-0 bg-black/30 rounded-xl'
+                        className='absolute inset-0 bg-black/30 rounded-card'
                         initial={{ opacity: 0.7 }}
                         animate={{ opacity: 0.5 - scrollProgress * 0.3 }}
                         transition={{ duration: 0.2 }}
@@ -257,7 +260,7 @@ const ScrollExpandMedia = ({
                         loop
                         playsInline
                         preload='auto'
-                        className='w-full h-full object-cover rounded-xl'
+                        className='w-full h-full object-cover rounded-card'
                         controls={false}
                         disablePictureInPicture
                         disableRemotePlayback
@@ -268,7 +271,7 @@ const ScrollExpandMedia = ({
                       ></div>
 
                       <motion.div
-                        className='absolute inset-0 bg-black/30 rounded-xl'
+                        className='absolute inset-0 bg-black/30 rounded-card'
                         initial={{ opacity: 0.7 }}
                         animate={{ opacity: 0.5 - scrollProgress * 0.3 }}
                         transition={{ duration: 0.2 }}
@@ -282,11 +285,11 @@ const ScrollExpandMedia = ({
                       alt={title || 'Media content'}
                       width={1280}
                       height={720}
-                      className='w-full h-full object-cover rounded-xl'
+                      className='w-full h-full object-cover rounded-card'
                     />
 
                     <motion.div
-                      className='absolute inset-0 bg-black/50 rounded-xl'
+                      className='absolute inset-0 bg-black/50 rounded-card'
                       initial={{ opacity: 0.7 }}
                       animate={{ opacity: 0.7 - scrollProgress * 0.3 }}
                       transition={{ duration: 0.2 }}
@@ -299,12 +302,12 @@ const ScrollExpandMedia = ({
                   style={{ opacity: Math.max(0, 1 - scrollProgress * 2) }}
                 >
                   {date && (
-                    <p className='text-2xl text-blue-200'>
+                    <p className='text-2xl text-primary-foreground'>
                       {date}
                     </p>
                   )}
                   {scrollToExpand && (
-                    <p className='text-blue-200 font-medium text-center'>
+                    <p className='text-primary-foreground font-medium text-center'>
                       {scrollToExpand}
                     </p>
                   )}
@@ -317,12 +320,18 @@ const ScrollExpandMedia = ({
                 }`}
                 style={{ opacity: Math.max(0, 1 - scrollProgress * 2) }}
               >
-                <motion.h2 className='text-4xl md:text-5xl lg:text-6xl font-bold text-blue-200 transition-none'>
-                  {firstWord}
-                </motion.h2>
-                <motion.h2 className='text-4xl md:text-5xl lg:text-6xl font-bold text-center text-blue-200 transition-none'>
-                  {restOfTitle}
-                </motion.h2>
+                {title === 'ArqHub' ? (
+                  <Logo variant="translucent" size="xl" className="mt-4" />
+                ) : (
+                  <>
+                    <motion.h2 className='text-4xl md:text-5xl lg:text-6xl font-bold text-primary-foreground transition-none'>
+                      {firstWord}
+                    </motion.h2>
+                    <motion.h2 className='text-4xl md:text-5xl lg:text-6xl font-bold text-center text-primary-foreground transition-none'>
+                      {restOfTitle}
+                    </motion.h2>
+                  </>
+                )}
               </div>
             </div>
 
