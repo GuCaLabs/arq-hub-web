@@ -1,4 +1,4 @@
-import { getApiUrl } from "@/lib/api-url";
+import { fetchApi } from "@/lib/api";
 import type { User } from "@/contexts/AuthContext";
 
 interface AuthSuccess {
@@ -19,9 +19,8 @@ interface AuthError {
 type AuthResponse = AuthSuccess | AuthError;
 
 export async function exchangeFirebaseToken(idToken: string): Promise<AuthSuccess["data"]> {
-  const response = await fetch(getApiUrl("/auth/login"), {
+  const response = await fetchApi("/auth/login", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ provider: "firebase", idToken }),
   });
 
@@ -36,9 +35,8 @@ export async function exchangeFirebaseToken(idToken: string): Promise<AuthSucces
 }
 
 export async function verifyMagicLink(token: string): Promise<AuthSuccess["data"]> {
-  const response = await fetch(getApiUrl("/auth/magic-link"), {
+  const response = await fetchApi("/auth/magic-link", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ token }),
   });
 
