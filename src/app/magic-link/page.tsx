@@ -1,7 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/contexts/AuthContext";
 import { verifyMagicLink } from "@/lib/auth-api";
 import Link from "next/link";
@@ -11,12 +11,13 @@ import { getFirebaseAuth } from "@/lib/firebase";
 
 function MagicLinkContent() {
   const searchParams = useSearchParams();
-  const router = useRouter();
   const { user: currentUser, login, isLoading } = useAuth();
-  
-  const [status, setStatus] = useState<"loading" | "conflict" | "error">("loading");
+
+  const [status, setStatus] = useState<"loading" | "conflict" | "error">(
+    "loading",
+  );
   const [errorMessage, setErrorMessage] = useState<string>("");
-  
+
   const hasChecked = useRef(false);
 
   // Função isolada para consumir o token e logar
@@ -27,7 +28,11 @@ function MagicLinkContent() {
       login(data.accessToken, data.refreshToken, data.user, redirectPath);
     } catch (error: unknown) {
       setStatus("error");
-      setErrorMessage(error instanceof Error ? error.message : "O link expirou ou é inválido.");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "O link expirou ou é inválido.",
+      );
     }
   };
 
@@ -35,7 +40,7 @@ function MagicLinkContent() {
     if (isLoading) return;
     if (hasChecked.current) return;
     // Opcional: ignorar se currentUser ainda está sendo carregado (mas assumimos que a página carrega rápido ou AuthContext resolve rápido)
-    
+
     async function checkToken() {
       const token = searchParams.get("token");
       const redirectPath = searchParams.get("redirect") || "/dashboard";
@@ -65,7 +70,9 @@ function MagicLinkContent() {
         await consumeAndLogin(token, redirectPath);
       } catch {
         setStatus("error");
-        setErrorMessage("O link de acesso fornecido possui um formato inválido.");
+        setErrorMessage(
+          "O link de acesso fornecido possui um formato inválido.",
+        );
       }
     }
 
@@ -76,28 +83,32 @@ function MagicLinkContent() {
   const handleSwitchAccount = async () => {
     const token = searchParams.get("token");
     const redirectPath = searchParams.get("redirect") || "/dashboard";
-    
+
     if (!token) return;
 
     setStatus("loading");
 
     try {
-      // 1. Tenta consumir o token na API PRIMEIRO. 
+      // 1. Tenta consumir o token na API PRIMEIRO.
       // Se já tiver sido consumido em outro dispositivo, vai dar erro e ele nem desloga a Conta A.
       const data = await verifyMagicLink(token);
-      
+
       // 2. Se o token era válido, agora sim limpamos o Firebase da Conta A
       try {
         await signOut(getFirebaseAuth());
       } catch (e) {
         console.warn("Falha ao deslogar do Firebase", e);
       }
-      
+
       // 3. Efetivamos o login com a nova Conta B
       login(data.accessToken, data.refreshToken, data.user, redirectPath);
     } catch (error: unknown) {
       setStatus("error");
-      setErrorMessage(error instanceof Error ? error.message : "O link expirou ou já foi utilizado.");
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : "O link expirou ou já foi utilizado.",
+      );
     }
   };
 
@@ -108,7 +119,9 @@ function MagicLinkContent() {
           <AlertCircle className="w-8 h-8 text-red-600" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-gray-900">Erro na Autenticação</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Erro na Autenticação
+          </h1>
           <p className="text-gray-500 max-w-sm mx-auto">{errorMessage}</p>
         </div>
         <Link
@@ -128,10 +141,15 @@ function MagicLinkContent() {
           <RefreshCw className="w-8 h-8 text-amber-600" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-gray-900">Conflito de Sessão</h1>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Conflito de Sessão
+          </h1>
           <p className="text-gray-500 max-w-sm mx-auto">
-            Você já está conectado como <strong>{currentUser?.name || currentUser?.email || "outro usuário"}</strong>. 
-            Este link de acesso pertence a uma conta diferente.
+            Você já está conectado como{" "}
+            <strong>
+              {currentUser?.name || currentUser?.email || "outro usuário"}
+            </strong>
+            . Este link de acesso pertence a uma conta diferente.
           </p>
           <p className="text-gray-500 max-w-sm mx-auto mt-2">
             Deseja sair da conta atual e entrar com o novo acesso recebido?
@@ -159,8 +177,12 @@ function MagicLinkContent() {
     <div className="flex flex-col items-center justify-center space-y-6 text-center animate-in fade-in duration-500">
       <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900">Preparando seu ambiente ArqHub...</h1>
-        <p className="text-gray-500">Estamos validando seu acesso seguro, por favor aguarde.</p>
+        <h1 className="text-2xl font-bold text-gray-900">
+          Preparando seu ambiente ArqHub...
+        </h1>
+        <p className="text-gray-500">
+          Estamos validando seu acesso seguro, por favor aguarde.
+        </p>
       </div>
     </div>
   );
@@ -176,7 +198,9 @@ export default function MagicLinkPage() {
               <div className="flex flex-col items-center justify-center space-y-6 text-center">
                 <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
                 <div className="space-y-2">
-                  <h1 className="text-xl font-medium text-gray-900">Carregando...</h1>
+                  <h1 className="text-xl font-medium text-gray-900">
+                    Carregando...
+                  </h1>
                 </div>
               </div>
             }

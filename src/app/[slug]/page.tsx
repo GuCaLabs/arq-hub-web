@@ -3,14 +3,12 @@ import Image from "next/image";
 import { VerifiedIcon, CameraIcon } from "lucide-react";
 import { ExpandableText } from "@/components/ui/expandable-text";
 import { ProfileHeaderObserver } from "@/components/ui/profile-header-observer";
+import { fetchApi } from "@/lib/api";
 
-async function getWorkspaceProfile(slug: string) {
-  const apiUrl =
-    process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ||
-    "http://localhost:3000/api";
+export async function getWorkspaceProfile(slug: string) {
   try {
     // Revalidates cache every 60 seconds (ISR)
-    const res = await fetch(`${apiUrl}/v1/workspaces/slug/${slug}`, {
+    const res = await fetchApi(`/workspaces/slug/${slug}`, {
       next: { revalidate: 60 },
     });
     if (!res.ok) return null;
