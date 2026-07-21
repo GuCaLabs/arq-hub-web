@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { useAuth } from "@/contexts/AuthContext";
 import { fetchApi } from "@/lib/api";
 import Link from "next/link";
 import Image from "next/image";
@@ -12,7 +11,18 @@ import {
   Archive,
   Trash2,
   ArchiveRestore,
+  X,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface Workspace {
   id: string;
@@ -32,27 +42,37 @@ interface Project {
 }
 
 export default function DashboardPage() {
-  const { user, logout } = useAuth();
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const [inviteCode, setInviteCode] = useState("");
   const [isJoining, setIsJoining] = useState(false);
+  const [isInviteModalOpen, setIsInviteModalOpen] = useState(false);
   const router = useRouter();
+
+  useEffect(() => {
+    if (isInviteModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isInviteModalOpen]);
 
   const loadDashboardData = useCallback(async () => {
     try {
       const [wsRes, projRes] = await Promise.all([
         fetchApi("/workspaces"),
-        fetchApi("/users/me/projects")
+        fetchApi("/users/me/projects"),
       ]);
-      
+
       if (wsRes.ok) {
         const wsData = await wsRes.json();
         if (wsData.success) setWorkspaces(wsData.data);
       }
-      
+
       if (projRes.ok) {
         const projData = await projRes.json();
         if (projData.success) setProjects(projData.data);
@@ -69,17 +89,6 @@ export default function DashboardPage() {
       await loadDashboardData();
     })();
   }, [loadDashboardData]);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (!target.closest(".dropdown-container")) {
-        setOpenDropdownId(null);
-      }
-    };
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, []);
 
   const handleJoinWithCode = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -104,6 +113,7 @@ export default function DashboardPage() {
       if (res.ok) {
         alert("Solicitação enviada ou entrada realizada com sucesso!");
         setInviteCode("");
+        setIsInviteModalOpen(false);
         loadDashboardData();
       } else {
         const errorData = await res.json().catch(() => null);
@@ -121,28 +131,23 @@ export default function DashboardPage() {
     switch (status) {
       case "ACTIVE":
         return (
-          <span className="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300">
+          <Badge variant="default" className="bg-green-600 hover:bg-green-700">
             Ativo
-          </span>
+          </Badge>
         );
       case "ONBOARDING":
         return (
-          <span className="bg-yellow-100 text-yellow-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-yellow-900 dark:text-yellow-300">
+          <Badge
+            variant="secondary"
+            className="bg-yellow-500 hover:bg-yellow-600 text-white"
+          >
             Onboarding
-          </span>
+          </Badge>
         );
       case "ARCHIVED":
-        return (
-          <span className="bg-gray-200 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-gray-700 dark:text-gray-300">
-            Arquivado
-          </span>
-        );
+        return <Badge variant="outline">Arquivado</Badge>;
       default:
-        return (
-          <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded-full dark:bg-gray-700 dark:text-gray-300">
-            {status}
-          </span>
-        );
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
@@ -158,7 +163,6 @@ export default function DashboardPage() {
 
   const handleArchive = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setOpenDropdownId(null);
     if (!confirm("Deseja realmente arquivar este escritório?")) return;
 
     try {
@@ -179,7 +183,6 @@ export default function DashboardPage() {
 
   const handleUnarchive = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setOpenDropdownId(null);
 
     try {
       const res = await fetchApi(`/workspaces/${id}`, {
@@ -199,7 +202,6 @@ export default function DashboardPage() {
 
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setOpenDropdownId(null);
     if (
       !confirm(
         "CUIDADO: Deseja realmente excluir este escritório permanentemente?",
@@ -224,101 +226,58 @@ export default function DashboardPage() {
 
   const handleEdit = (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    setOpenDropdownId(null);
     router.push(`/workspaces/${id}/edit`);
   };
 
   const isOwner = workspaces.some((ws) => ws.role === "OWNER");
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-      <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between h-16 items-center">
-            <h1 className="text-xl font-bold text-gray-900 dark:text-white">
-              ArqHub
-            </h1>
-            <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600 dark:text-gray-400">
-                {user?.email}
-              </span>
-              <button
-                onClick={logout}
-                className="text-sm font-medium text-red-600 hover:text-red-500 transition-colors"
-              >
-                Sair
-              </button>
-            </div>
-          </div>
-        </div>
-      </header>
-
+    <div className="min-h-screen bg-background pb-12">
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Meus Escritórios
-          </h2>
+          <h2 className="text-h1">Meus Escritórios</h2>
 
           <div className="flex items-center gap-4 w-full md:w-auto">
-            <form
-              onSubmit={handleJoinWithCode}
-              className="flex flex-1 md:flex-none items-center gap-2"
+            <Button
+              variant="secondary"
+              onClick={() => setIsInviteModalOpen(true)}
             >
-              <input
-                type="text"
-                placeholder="Código de convite"
-                value={inviteCode}
-                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
-                maxLength={8}
-                className="px-3 py-2 text-sm border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none w-full md:w-40"
-                disabled={isJoining}
-              />
-              <button
-                type="submit"
-                disabled={isJoining || inviteCode.length < 6}
-                className="bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-900 dark:text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isJoining ? "..." : "Entrar"}
-              </button>
-            </form>
+              Usar Convite
+            </Button>
 
             {!isOwner && (
-              <Link
-                href="/workspaces/create"
-                className="bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold py-2 px-4 rounded-lg transition-colors shadow-sm whitespace-nowrap"
-              >
-                Novo Escritório
-              </Link>
+              <Button asChild>
+                <Link href="/workspaces/create">Novo Escritório</Link>
+              </Button>
             )}
           </div>
         </div>
 
         {isLoading ? (
-          <div className="text-center py-12 text-gray-500">
+          <div className="text-center py-12 text-muted">
             Carregando escritórios...
           </div>
         ) : workspaces.length === 0 ? (
-          <div className="bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-12 text-center flex flex-col items-center">
-            <p className="text-gray-500 dark:text-gray-400 mb-6">
+          <Card className="p-12 text-center flex flex-col items-center">
+            <p className="text-muted mb-6">
               Você ainda não faz parte de nenhum escritório.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
               {!isOwner && (
-                <Link
-                  href="/workspaces/create"
-                  className="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 px-6 rounded-lg transition-colors"
-                >
-                  Criar meu primeiro escritório
-                </Link>
+                <Button asChild>
+                  <Link href="/workspaces/create">
+                    Criar meu primeiro escritório
+                  </Link>
+                </Button>
               )}
             </div>
-          </div>
+          </Card>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {workspaces.map((ws) => (
-              <div
+              <Card
                 key={ws.id}
-                className="bg-white dark:bg-gray-900 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-800 cursor-pointer overflow-hidden relative"
+                className="cursor-pointer hover:bg-secondary/20 transition-colors"
                 onClick={() => {
                   if (ws.status === "ONBOARDING") {
                     router.push(`/workspaces/${ws.id}/create`);
@@ -327,10 +286,10 @@ export default function DashboardPage() {
                   }
                 }}
               >
-                <div className="p-6">
+                <CardContent className="p-6">
                   <div className="flex justify-between items-start mb-4">
                     <div className="flex items-center gap-3">
-                      <div className="relative w-10 h-10 rounded-full flex items-center justify-center bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 overflow-hidden shrink-0">
+                      <div className="relative w-10 h-10 rounded-full flex items-center justify-center bg-secondary border border-border overflow-hidden shrink-0">
                         {ws.logoUrl ? (
                           <Image
                             src={ws.logoUrl}
@@ -339,15 +298,12 @@ export default function DashboardPage() {
                             className="object-cover"
                           />
                         ) : (
-                          <span className="text-sm font-semibold text-gray-600 dark:text-gray-300">
+                          <span className="text-small">
                             {getInitials(ws.name)}
                           </span>
                         )}
                       </div>
-                      <h3
-                        className="text-lg font-bold text-gray-900 dark:text-white truncate pr-2"
-                        title={ws.name}
-                      >
+                      <h3 className="text-h3 truncate pr-2" title={ws.name}>
                         {ws.name}
                       </h3>
                     </div>
@@ -356,100 +312,92 @@ export default function DashboardPage() {
                       {getStatusBadge(ws.status)}
 
                       {ws.role === "OWNER" && (
-                        <div className="relative dropdown-container">
-                          <button
-                            type="button"
-                            className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              setOpenDropdownId(
-                                openDropdownId === ws.id ? null : ws.id,
-                              );
-                            }}
-                          >
-                            <MoreVertical size={18} />
-                          </button>
-
-                          {openDropdownId === ws.id && (
-                            <div className="absolute right-0 mt-1 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-10 py-1">
-                              <button
-                                type="button"
+                        <div className="relative">
+                          <DropdownMenu>
+                            <DropdownMenuTrigger
+                              asChild
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 rounded-full"
+                              >
+                                <MoreVertical
+                                  size={18}
+                                  className="text-muted-foreground"
+                                />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
                                 onClick={(e) => handleEdit(ws.id, e)}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
                               >
-                                <Edit2 size={14} /> Editar
-                              </button>
+                                <Edit2 size={14} className="mr-2" /> Editar
+                              </DropdownMenuItem>
                               {ws.status === "ARCHIVED" ? (
-                                <button
-                                  type="button"
+                                <DropdownMenuItem
                                   onClick={(e) => handleUnarchive(ws.id, e)}
-                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
                                 >
-                                  <ArchiveRestore size={14} /> Desarquivar
-                                </button>
+                                  <ArchiveRestore size={14} className="mr-2" />{" "}
+                                  Desarquivar
+                                </DropdownMenuItem>
                               ) : (
-                                <button
-                                  type="button"
+                                <DropdownMenuItem
                                   onClick={(e) => handleArchive(ws.id, e)}
-                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2"
                                 >
-                                  <Archive size={14} /> Arquivar
-                                </button>
+                                  <Archive size={14} className="mr-2" />{" "}
+                                  Arquivar
+                                </DropdownMenuItem>
                               )}
-                              <button
-                                type="button"
+                              <DropdownMenuItem
                                 onClick={(e) => handleDelete(ws.id, e)}
-                                className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
+                                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
                               >
-                                <Trash2 size={14} /> Deletar
-                              </button>
-                            </div>
-                          )}
+                                <Trash2 size={14} className="mr-2" /> Deletar
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </div>
                       )}
                     </div>
                   </div>
-                  <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    <span className="font-medium px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs">
+                  <div className="flex items-center text-muted mb-4">
+                    <Badge variant="secondary" className="font-medium">
                       {ws.role}
-                    </span>
+                    </Badge>
                   </div>
-                  <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center text-sm">
-                    <span className="text-gray-500">/{ws.slug}</span>
-                    <span className="text-blue-600 font-medium group-hover:underline">
+                  <div className="mt-4 pt-4 border-t border-border flex justify-between items-center text-sm">
+                    <span className="text-muted">/{ws.slug}</span>
+                    <span className="text-primary font-medium group-hover:underline">
                       Acessar &rarr;
                     </span>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
         )}
-        
+
         {!isLoading && projects.length > 0 && (
           <div className="mt-12">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">
-              Meus Projetos (Cliente)
-            </h2>
+            <h2 className="text-h2 mb-6">Meus Projetos (Cliente)</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {projects.map((proj) => (
-                <div
+                <Card
                   key={proj.id}
-                  className="bg-white dark:bg-gray-900 rounded-xl shadow-sm hover:shadow-md transition-shadow border border-gray-200 dark:border-gray-800 cursor-pointer overflow-hidden"
+                  className="cursor-pointer hover:bg-secondary/20 transition-colors"
                   onClick={() => router.push(`/projects/${proj.id}`)}
                 >
-                  <div className="p-6">
+                  <CardContent className="p-6">
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex items-center gap-3">
-                        <div className="relative w-10 h-10 rounded-full flex items-center justify-center bg-blue-100 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-800 overflow-hidden shrink-0">
-                          <span className="text-sm font-semibold text-blue-700 dark:text-blue-300">
+                        <div className="relative w-10 h-10 rounded-full flex items-center justify-center bg-primary/10 border border-primary/20 overflow-hidden shrink-0">
+                          <span className="text-small text-primary">
                             {getInitials(proj.name)}
                           </span>
                         </div>
-                        <h3
-                          className="text-lg font-bold text-gray-900 dark:text-white truncate pr-2"
-                          title={proj.name}
-                        >
+                        <h3 className="text-h3 truncate pr-2" title={proj.name}>
                           {proj.name}
                         </h3>
                       </div>
@@ -458,24 +406,72 @@ export default function DashboardPage() {
                         {getStatusBadge(proj.status)}
                       </div>
                     </div>
-                    <div className="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-4">
-                      <span className="font-medium px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded text-xs mr-2">
+                    <div className="flex items-center text-muted mb-4">
+                      <Badge variant="secondary" className="mr-2">
                         {proj.phase}
-                      </span>
+                      </Badge>
                     </div>
-                    <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800 flex justify-between items-center text-sm">
-                      <span className="text-gray-500">Projeto Vinculado</span>
-                      <span className="text-blue-600 font-medium group-hover:underline">
+                    <div className="mt-4 pt-4 border-t border-border flex justify-between items-center text-sm">
+                      <span className="text-muted">Projeto Vinculado</span>
+                      <span className="text-primary font-medium group-hover:underline">
                         Acessar &rarr;
                       </span>
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>
         )}
       </main>
+
+      {/* Modal de Convite */}
+      {isInviteModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 px-4">
+          <div className="bg-background rounded-xl w-full max-w-sm flex flex-col shadow-2xl border border-border animate-in fade-in zoom-in duration-200 p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="font-semibold text-foreground text-lg">
+                Usar Código de Convite
+              </h3>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsInviteModalOpen(false)}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground rounded-full -mr-2"
+              >
+                <X size={18} />
+              </Button>
+            </div>
+            <form onSubmit={handleJoinWithCode} className="flex flex-col gap-4">
+              <Input
+                autoFocus
+                type="text"
+                placeholder="Código de 6 a 8 dígitos"
+                value={inviteCode}
+                onChange={(e) => setInviteCode(e.target.value.toUpperCase())}
+                maxLength={8}
+                disabled={isJoining}
+              />
+              <div className="flex justify-end gap-2 mt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={() => setIsInviteModalOpen(false)}
+                  disabled={isJoining}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isJoining || inviteCode.length < 6}
+                >
+                  {isJoining ? "Entrando..." : "Entrar"}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -4,6 +4,9 @@ import { useState, useRef, useEffect } from "react";
 import Cropper, { Area } from "react-easy-crop";
 import getCroppedImg from "@/lib/crop-image";
 import Image from "next/image";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Button } from "@/components/ui/button";
 
 export interface WorkspaceFormProps {
   initialData?: {
@@ -74,6 +77,17 @@ export function WorkspaceForm({
   const [localError, setLocalError] = useState("");
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (isCropModalOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isCropModalOpen]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -216,20 +230,19 @@ export function WorkspaceForm({
             </div>
 
             <div className="flex justify-end gap-3 mt-auto">
-              <button
+              <Button
                 type="button"
+                variant="secondary"
                 onClick={() => setIsCropModalOpen(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 rounded-lg transition-colors"
               >
                 Cancelar
-              </button>
-              <button
+              </Button>
+              <Button
                 type="button"
                 onClick={handleCropComplete}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm transition-colors"
               >
                 Cortar Imagem
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -281,29 +294,24 @@ export function WorkspaceForm({
 
         {isEditMode && (
           <>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Nome do Escritório *
-              </label>
-              <input
+            <div className="space-y-1">
+              <Label>Nome do Escritório *</Label>
+              <Input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
-                className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
                 placeholder="Ex: Studio Arquitetura"
               />
             </div>
 
-            <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                Slug (URL) *
-              </label>
+            <div className="space-y-1">
+              <Label>Slug (URL) *</Label>
               <div className="flex items-center">
-                <span className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-r-0 border-gray-300 dark:border-gray-700 rounded-l-lg text-gray-500 dark:text-gray-400 text-sm">
+                <span className="px-3 py-2 bg-muted border border-r-0 border-border rounded-l-md text-muted-foreground text-sm h-10 flex items-center">
                   arqhub.com/
                 </span>
-                <input
+                <Input
                   type="text"
                   required
                   value={slug}
@@ -312,7 +320,7 @@ export function WorkspaceForm({
                       e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ""),
                     )
                   }
-                  className="w-full px-4 py-2 rounded-r-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="rounded-l-none"
                   placeholder="studio-arquitetura"
                 />
               </div>
@@ -320,113 +328,98 @@ export function WorkspaceForm({
           </>
         )}
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Bio (Descrição) Opcional
-          </label>
+        <div className="space-y-1">
+          <Label>Bio (Descrição) Opcional</Label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+            className="w-full px-3 py-2 rounded-md border border-border bg-background text-body focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent resize-none"
             placeholder="Conte-nos um pouco sobre seu escritório..."
             rows={3}
             maxLength={200}
           />
-          <p className="text-xs text-gray-500 mt-1 text-right">
+          <p className="text-xs text-muted-foreground mt-1 text-right">
             {description.length}/200
           </p>
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Telefone
-          </label>
-          <input
+        <div className="space-y-1">
+          <Label>Telefone</Label>
+          <Input
             type="text"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
             placeholder="(00) 00000-0000"
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Website
-          </label>
-          <input
+        <div className="space-y-1">
+          <Label>Website</Label>
+          <Input
             type="url"
             value={website}
             onChange={(e) => setWebsite(e.target.value)}
-            className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
             placeholder="https://seu-site.com"
           />
         </div>
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Instagram (Opcional)
-          </label>
+        <div className="space-y-1">
+          <Label>Instagram (Opcional)</Label>
           <div className="flex items-center">
-            <span className="px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-r-0 border-gray-300 dark:border-gray-700 rounded-l-lg text-gray-500 dark:text-gray-400 text-sm">
+            <span className="px-3 py-2 bg-muted border border-r-0 border-border rounded-l-md text-muted-foreground text-sm h-10 flex items-center">
               @
             </span>
-            <input
+            <Input
               type="text"
               value={instagram}
               onChange={(e) => setInstagram(e.target.value.replace(/^@/, ""))}
-              className="w-full px-4 py-2 rounded-r-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              className="rounded-l-none"
               placeholder="studio-arquitetura"
             />
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              CAU
-            </label>
-            <input
+          <div className="space-y-1">
+            <Label>CAU</Label>
+            <Input
               type="text"
               value={cau}
               onChange={(e) => setCau(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="Ex: A12345-6"
             />
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              CNPJ
-            </label>
-            <input
+          <div className="space-y-1">
+            <Label>CNPJ</Label>
+            <Input
               type="text"
               value={cnpj}
               onChange={(e) => setCnpj(e.target.value)}
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
               placeholder="00.000.000/0000-00"
             />
           </div>
         </div>
 
         <div className="flex flex-col gap-3">
-          <button
+          <Button
             type="submit"
             disabled={isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-70 shadow-sm"
+            className="w-full"
           >
             {isLoading ? "Salvando..." : submitButtonText}
-          </button>
+          </Button>
 
           {onCancel && (
-            <button
+            <Button
               type="button"
+              variant="outline"
               disabled={isLoading}
               onClick={onCancel}
-              className="w-full bg-white dark:bg-gray-900 hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-700 font-semibold py-2.5 px-4 rounded-lg transition-colors disabled:opacity-70 shadow-sm"
+              className="w-full"
             >
               Cancelar
-            </button>
+            </Button>
           )}
         </div>
       </form>
