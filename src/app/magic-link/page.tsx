@@ -8,6 +8,8 @@ import Link from "next/link";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { signOut } from "firebase/auth";
 import { getFirebaseAuth } from "@/lib/firebase";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 function MagicLinkContent() {
   const searchParams = useSearchParams();
@@ -115,21 +117,20 @@ function MagicLinkContent() {
   if (status === "error") {
     return (
       <div className="flex flex-col items-center justify-center space-y-6 text-center animate-in fade-in zoom-in duration-300">
-        <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center">
-          <AlertCircle className="w-8 h-8 text-red-600" />
+        <div className="w-16 h-16 bg-destructive/10 rounded-full flex items-center justify-center">
+          <AlertCircle className="w-8 h-8 text-destructive" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-foreground">
             Erro na Autenticação
           </h1>
-          <p className="text-gray-500 max-w-sm mx-auto">{errorMessage}</p>
+          <p className="text-muted-foreground max-w-sm mx-auto">{errorMessage}</p>
         </div>
-        <Link
-          href={currentUser ? "/dashboard" : "/login"}
-          className="mt-4 inline-flex justify-center items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-        >
-          {currentUser ? "Voltar para o Dashboard" : "Voltar para o Login"}
-        </Link>
+        <Button asChild className="mt-4">
+          <Link href={currentUser ? "/dashboard" : "/login"}>
+            {currentUser ? "Voltar para o Dashboard" : "Voltar para o Login"}
+          </Link>
+        </Button>
       </div>
     );
   }
@@ -137,37 +138,31 @@ function MagicLinkContent() {
   if (status === "conflict") {
     return (
       <div className="flex flex-col items-center justify-center space-y-6 text-center animate-in fade-in zoom-in duration-300">
-        <div className="w-16 h-16 bg-amber-50 rounded-full flex items-center justify-center">
-          <RefreshCw className="w-8 h-8 text-amber-600" />
+        <div className="w-16 h-16 bg-amber-500/10 rounded-full flex items-center justify-center">
+          <RefreshCw className="w-8 h-8 text-amber-500" />
         </div>
         <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-2xl font-bold text-foreground">
             Conflito de Sessão
           </h1>
-          <p className="text-gray-500 max-w-sm mx-auto">
+          <p className="text-muted-foreground max-w-sm mx-auto">
             Você já está conectado como{" "}
-            <strong>
+            <strong className="text-foreground">
               {currentUser?.name || currentUser?.email || "outro usuário"}
             </strong>
             . Este link de acesso pertence a uma conta diferente.
           </p>
-          <p className="text-gray-500 max-w-sm mx-auto mt-2">
+          <p className="text-muted-foreground max-w-sm mx-auto mt-2">
             Deseja sair da conta atual e entrar com o novo acesso recebido?
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3 w-full max-w-xs mt-6">
-          <button
-            onClick={handleSwitchAccount}
-            className="flex-1 inline-flex justify-center items-center px-6 py-2.5 border border-transparent text-sm font-medium rounded-lg shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-          >
+          <Button onClick={handleSwitchAccount} className="flex-1">
             Sim, Trocar Conta
-          </button>
-          <Link
-            href="/dashboard"
-            className="flex-1 inline-flex justify-center items-center px-6 py-2.5 border border-gray-300 text-sm font-medium rounded-lg shadow-sm text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors"
-          >
-            Cancelar
-          </Link>
+          </Button>
+          <Button asChild variant="outline" className="flex-1">
+            <Link href="/dashboard">Cancelar</Link>
+          </Button>
         </div>
       </div>
     );
@@ -175,12 +170,12 @@ function MagicLinkContent() {
 
   return (
     <div className="flex flex-col items-center justify-center space-y-6 text-center animate-in fade-in duration-500">
-      <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
+      <Loader2 className="w-12 h-12 text-primary animate-spin" />
       <div className="space-y-2">
-        <h1 className="text-2xl font-bold text-gray-900">
+        <h1 className="text-2xl font-bold text-foreground">
           Preparando seu ambiente ArqHub...
         </h1>
-        <p className="text-gray-500">
+        <p className="text-muted-foreground">
           Estamos validando seu acesso seguro, por favor aguarde.
         </p>
       </div>
@@ -190,15 +185,15 @@ function MagicLinkContent() {
 
 export default function MagicLinkPage() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
-      <div className="sm:mx-auto sm:w-full sm:max-w-md">
-        <div className="bg-white py-12 px-4 shadow sm:rounded-xl sm:px-10 min-h-[400px] flex items-center justify-center border border-gray-100">
+    <div className="min-h-screen bg-background flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="w-full max-w-md mx-auto shadow-xl border-border">
+        <CardContent className="pt-12 pb-12 flex flex-col items-center justify-center min-h-[400px]">
           <Suspense
             fallback={
               <div className="flex flex-col items-center justify-center space-y-6 text-center">
-                <Loader2 className="w-12 h-12 text-indigo-600 animate-spin" />
+                <Loader2 className="w-12 h-12 text-primary animate-spin" />
                 <div className="space-y-2">
-                  <h1 className="text-xl font-medium text-gray-900">
+                  <h1 className="text-xl font-medium text-foreground">
                     Carregando...
                   </h1>
                 </div>
@@ -207,8 +202,8 @@ export default function MagicLinkPage() {
           >
             <MagicLinkContent />
           </Suspense>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

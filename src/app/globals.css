@@ -5,25 +5,25 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: #F8F9FA;
+  --background: #f8f9fa;
   --foreground: #334155;
-  --card: #F8F9FA;
+  --card: #f8f9fa;
   --card-foreground: #334155;
-  --popover: #F8F9FA;
+  --popover: #f8f9fa;
   --popover-foreground: #334155;
-  --primary: #1E1E24;
-  --primary-foreground: #F8F9FA;
-  --secondary: #E2E8F0;
-  --secondary-foreground: #1E1E24;
-  --muted: #E2E8F0;
-  --muted-foreground: #64748B;
-  --accent: #C85A32;
-  --accent-foreground: #FFFFFF;
+  --primary: #1e1e24;
+  --primary-foreground: #f8f9fa;
+  --secondary: #e2e8f0;
+  --secondary-foreground: #1e1e24;
+  --muted: #e2e8f0;
+  --muted-foreground: #475569;
+  --accent: #c85a32;
+  --accent-foreground: #ffffff;
   --destructive: hsl(0 84.2% 60.2%);
   --destructive-foreground: hsl(210 40% 98%);
-  --border: #E2E8F0;
-  --input: #E2E8F0;
-  --ring: #1E1E24;
+  --border: #e2e8f0;
+  --input: #e2e8f0;
+  --ring: #1e1e24;
   --chart-1: hsl(12 76% 61%);
   --chart-2: hsl(173 58% 39%);
   --chart-3: hsl(197 37% 24%);
@@ -36,25 +36,25 @@
 }
 
 .dark {
-  --background: #1E1E24;
-  --foreground: #F8F9FA;
-  --card: #1E1E24;
-  --card-foreground: #F8F9FA;
-  --popover: #1E1E24;
-  --popover-foreground: #F8F9FA;
-  --primary: #F8F9FA;
-  --primary-foreground: #1E1E24;
+  --background: #1e1e24;
+  --foreground: #f8f9fa;
+  --card: #1e1e24;
+  --card-foreground: #f8f9fa;
+  --popover: #1e1e24;
+  --popover-foreground: #f8f9fa;
+  --primary: #f8f9fa;
+  --primary-foreground: #1e1e24;
   --secondary: #334155;
-  --secondary-foreground: #F8F9FA;
+  --secondary-foreground: #f8f9fa;
   --muted: #334155;
-  --muted-foreground: #94A3B8;
-  --accent: #C85A32;
-  --accent-foreground: #FFFFFF;
+  --muted-foreground: #cbd5e1;
+  --accent: #c85a32;
+  --accent-foreground: #ffffff;
   --destructive: hsl(0 62.8% 30.6%);
   --destructive-foreground: hsl(210 40% 98%);
   --border: #334155;
   --input: #334155;
-  --ring: #64748B;
+  --ring: #64748b;
   --chart-1: hsl(220 70% 50%);
   --chart-2: hsl(160 60% 45%);
   --chart-3: hsl(30 80% 55%);
@@ -104,5 +104,32 @@
   body {
     background-color: var(--background);
     color: var(--foreground);
+  }
+}
+
+@layer components {
+  .text-h1 {
+    @apply text-2xl font-bold tracking-tight;
+    color: var(--foreground);
+  }
+  .text-h2 {
+    @apply text-xl font-semibold tracking-tight;
+    color: var(--foreground);
+  }
+  .text-h3 {
+    @apply text-lg font-medium;
+    color: var(--foreground);
+  }
+  .text-body {
+    @apply text-sm;
+    color: var(--foreground);
+  }
+  .text-muted {
+    @apply text-sm;
+    color: var(--muted-foreground);
+  }
+  .text-small {
+    @apply text-xs font-medium;
+    color: var(--muted-foreground);
   }
 }

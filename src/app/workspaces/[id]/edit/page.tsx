@@ -8,6 +8,8 @@ import {
   WorkspaceForm,
   WorkspaceFormProps,
 } from "@/components/workspaces/workspace-form";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 export default function EditWorkspacePage({
   params,
@@ -95,23 +97,22 @@ export default function EditWorkspacePage({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md mx-auto bg-white dark:bg-gray-900 rounded-xl shadow-sm border border-gray-200 dark:border-gray-800 p-8">
-        <div className="mb-8">
-          <button
-            type="button"
+    <div className="min-h-screen bg-background py-12 px-4 sm:px-6 lg:px-8">
+      <Card className="max-w-md mx-auto">
+        <CardHeader>
+          <Button
+            variant="link"
             onClick={() => router.back()}
-            className="text-sm text-blue-600 hover:underline mb-4 inline-block"
+            className="w-fit p-0 h-auto text-muted-foreground hover:text-primary mb-4"
           >
             &larr; Voltar
-          </button>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            Editar Escritório
-          </h2>
-          <p className="text-sm text-gray-500 mt-1">
+          </Button>
+          <CardTitle className="text-h2">Editar Escritório</CardTitle>
+          <CardDescription>
             Altere as informações do seu escritório.
-          </p>
-        </div>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
 
         <WorkspaceForm
           initialData={initialData}
@@ -122,7 +123,8 @@ export default function EditWorkspacePage({
           submitButtonText="Salvar Alterações"
           onCancel={handleCancel}
         />
-      </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

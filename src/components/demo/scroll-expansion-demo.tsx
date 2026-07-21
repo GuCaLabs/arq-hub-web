@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import ScrollExpandMedia from "@/components/ui/scroll-expansion-hero";
 import { Logo } from "@/components/ui/logo";
+import { Button } from "@/components/ui/button";
+import Link from "next/link";
 
 interface MediaAbout {
   overview: string;
@@ -207,21 +209,16 @@ const Demo = () => {
       {/* Blend Layer for Arq (needs to be outside normal stacking context) */}
       <div className="fixed top-0 left-0 right-0 z-[51] px-6 py-6 md:px-12 pointer-events-none flex justify-between items-center mix-blend-difference">
         <Logo variant="logo" layer="blend" opacity={logoOpacity} size="lg" />
-        {/* Ghost button to force identical container height for perfect vertical alignment */}
-        <a className="px-8 py-2.5 rounded-full font-semibold opacity-0 pointer-events-none">
-          Entrar
-        </a>
+        {/* Ghost spacer — must match Button size="default" exactly: h-10 px-4 py-2 text-sm rounded-lg */}
+        <div className="h-10 px-4 py-2 text-sm rounded-lg opacity-0" aria-hidden>Entrar</div>
       </div>
 
       {/* Normal Layer for Hub and Button */}
       <header className="fixed top-0 left-0 right-0 z-50 flex justify-between items-center px-6 py-6 md:px-12 pointer-events-none">
         <Logo variant="logo" layer="normal" opacity={logoOpacity} size="lg" />
-        <a
-          href="/login"
-          className="bg-accent hover:bg-accent/90 text-accent-foreground px-8 py-2.5 rounded-full font-semibold transition-all shadow-lg hover:shadow-xl pointer-events-auto"
-        >
-          Entrar
-        </a>
+        <Button asChild className="bg-accent hover:bg-accent/90 text-accent-foreground rounded-full font-semibold shadow-lg hover:shadow-xl pointer-events-auto">
+          <Link href="/login">Entrar</Link>
+        </Button>
       </header>
       <ScrollExpandMedia
         mediaType={mediaType as "video" | "image"}
